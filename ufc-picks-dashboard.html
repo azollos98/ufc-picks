@@ -1,1 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UFC Picks Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --surface2: #1a1a1a;
+    --border: #222222;
+    --border2: #2e2e2e;
+    --text: #f0f0f0;
+    --muted: #666666;
+    --muted2: #444444;
+    --green: #00e676;
+    --green-dim: #003d1f;
+    --red: #ff3d3d;
+    --red-dim: #3d0000;
+    --gold: #ffd600;
+    --blue: #2979ff;
+    --blue-dim: #0d2166;
+    --amber: #ffab00;
+    --amber-dim: #332200;
+    --purple: #aa00ff;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    position: sticky;
+    top: 0;
+    background: rgba(10,10,10,0.95);
+    backdrop-filter: blur(8px);
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    letter-spacing: 2px;
+    color: var(--text);
+  }
+
+  .logo span { color: var(--gold); }
+
+  .last-updated {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* MAIN */
+  main { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+
+  /* STAT CARDS */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 2rem;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 18px;
+    transition: border-color 0.2s;
+  }
+
+  .stat-card:hover { border-color: var(--border2); }
+
+  .stat-label {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .stat-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    line-height: 1;
+    letter-spacing: 1px;
+  }
+
+  .stat-val.pos { color: var(--green); }
+  .stat-val.neg { color: var(--red); }
+  .stat-val.neutral { color: var(--text); }
+
+  .stat-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* FILTERS */
+  .filters-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 18px;
+    margin-bottom: 1.5rem;
+  }
+
+  .filters-title {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+    align-items: end;
+  }
+
+  .filter-group label {
+    display: block;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+
+  select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    padding: 7px 10px;
+    border-radius: 5px;
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23666'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    transition: border-color 0.2s;
+  }
+
+  select:hover, select:focus { border-color: var(--gold); outline: none; }
+
+  .reset-btn {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--muted);
+    padding: 7px 16px;
+    border-radius: 5px;
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+  }
+
+  .reset-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+  /* TABLE */
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .table-header-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .table-title {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .row-count {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .table-scroll { overflow-x: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 900px;
+  }
+
+  thead th {
+    background: var(--surface2);
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--surface2); }
+
+  td {
+    padding: 10px 14px;
+    font-size: 13px;
+    white-space: nowrap;
+    font-family: 'DM Mono', monospace;
+  }
+
+  td.name {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  /* BADGES */
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .badge-dog { background: var(--amber-dim); color: var(--amber); border: 1px solid #4d3300; }
+  .badge-fav { background: var(--blue-dim); color: #82b1ff; border: 1px solid #1a3a80; }
+  .badge-win { background: var(--green-dim); color: var(--green); border: 1px solid #005c2e; }
+  .badge-loss { background: var(--red-dim); color: var(--red); border: 1px solid #5c0000; }
+  .badge-parlay { background: #1a0033; color: #cc80ff; border: 1px solid #440088; font-size: 9px; }
+
+  .pl-pos { color: var(--green); font-weight: 500; }
+  .pl-neg { color: var(--red); font-weight: 500; }
+
+  /* LOADING / ERROR */
+  .loading-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .spinner {
+    width: 28px;
+    height: 28px;
+    border: 2px solid var(--border2);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .error-state {
+    padding: 3rem;
+    text-align: center;
+    color: var(--red);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+  }
+
+  /* FADE IN */
+  .fade-in {
+    animation: fadeIn 0.4s ease forwards;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 600px) {
+    main { padding: 1rem; }
+    header { padding: 0 1rem; }
+    .logo { font-size: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">UFC <span>PICKS</span> TRACKER</div>
+  <div class="last-updated" id="last-updated">Loading...</div>
+</header>
+
+<main>
+  <div class="stats-grid" id="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Loading</div>
+      <div class="stat-val neutral">—</div>
+    </div>
+  </div>
+
+  <div class="filters-section">
+    <div class="filters-title">Filter Picks</div>
+    <div class="filters-grid">
+      <div class="filter-group">
+        <label>Location</label>
+        <select id="f-loc"><option value="">All locations</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Weight class</label>
+        <select id="f-wc"><option value="">All</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Gender</label>
+        <select id="f-gen"><option value="">All</option><option value="M">Male</option><option value="W">Female</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Pick type</label>
+        <select id="f-fd"><option value="">All</option><option value="Favorite">Favorite</option><option value="Underdog">Underdog</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Card position</label>
+        <select id="f-card"><option value="">All</option><option value="Main Event">Main Event</option><option value="Main Card">Main Card</option><option value="Prelims">Prelims</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Result</label>
+        <select id="f-res"><option value="">All</option><option value="Win">Win</option><option value="Loss">Loss</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Nationality</label>
+        <select id="f-nat"><option value="">All</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Max age</label>
+        <select id="f-age"><option value="">Any age</option><option value="25">Under 25</option><option value="30">Under 30</option><option value="35">Under 35</option><option value="40">Under 40</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Bet type</label>
+        <select id="f-par"><option value="">All bets</option><option value="N">Straight only</option><option value="Y">Parlays only</option></select>
+      </div>
+      <div class="filter-group">
+        <label>&nbsp;</label>
+        <button class="reset-btn" onclick="resetFilters()">Reset all</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-header-bar">
+      <div class="table-title">All Picks — sorted by best P/L</div>
+      <div class="row-count" id="row-count">—</div>
+    </div>
+    <div class="table-scroll">
+      <div id="table-container">
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <div class="loading-text">Fetching picks from Google Sheets...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQgAn8AgO4_DDbfFoo6CXUmwFKfW-48ZuhUVaPzXk_TsI-6PH1ZliBX83a33rZKsDkW2Yj2XweQS9q1/pub?gid=0&single=true&output=csv';
+
+let ALL_PICKS = [];
+
+async function fetchData() {
+  try {
+    const res = await fetch(SHEET_URL);
+    if (!res.ok) throw new Error('Network error');
+    const text = await res.text();
+    const rows = text.trim().split('\n').slice(1); // skip header
+    ALL_PICKS = rows.map(row => {
+      // Handle CSV properly (quoted fields etc)
+      const cols = parseCSVRow(row);
+      return {
+        date: cols[0]?.trim() || '',
+        location: cols[1]?.trim() || '',
+        fighter: cols[2]?.trim() || '',
+        wc: cols[3]?.trim() || '',
+        gender: cols[4]?.trim() || '',
+        age: parseInt(cols[5]) || 0,
+        nat: cols[6]?.trim() || '',
+        card: cols[7]?.trim() || '',
+        type: cols[8]?.trim() || '',
+        units: parseFloat(cols[9]) || 0,
+        result: cols[10]?.trim() || '',
+        odds: parseInt(cols[11]) || 0,
+        parlay: cols[12]?.trim() || 'N',
+        parlayId: cols[13]?.trim() || '',
+        unitsWon: parseFloat(cols[14]) || 0,
+      };
+    }).filter(p => p.fighter);
+
+    document.getElementById('last-updated').textContent = 'Updated: ' + new Date().toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    populateDropdowns();
+    render();
+  } catch(e) {
+    document.getElementById('table-container').innerHTML = `<div class="error-state">Failed to load data. Check your Google Sheet is published publicly.<br><br>${e.message}</div>`;
+    document.getElementById('last-updated').textContent = 'Error loading data';
+  }
+}
+
+function parseCSVRow(row) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < row.length; i++) {
+    const ch = row[i];
+    if (ch === '"') { inQuotes = !inQuotes; }
+    else if (ch === ',' && !inQuotes) { result.push(current); current = ''; }
+    else { current += ch; }
+  }
+  result.push(current);
+  return result;
+}
+
+function getFiltered() {
+  const loc = document.getElementById('f-loc').value;
+  const wc = document.getElementById('f-wc').value;
+  const gen = document.getElementById('f-gen').value;
+  const fd = document.getElementById('f-fd').value;
+  const card = document.getElementById('f-card').value;
+  const res = document.getElementById('f-res').value;
+  const nat = document.getElementById('f-nat').value;
+  const age = document.getElementById('f-age').value;
+  const par = document.getElementById('f-par').value;
+
+  return ALL_PICKS.filter(p => {
+    if (loc && p.location !== loc) return false;
+    if (wc && p.wc !== wc) return false;
+    if (gen && p.gender !== gen) return false;
+    if (fd && p.type !== fd) return false;
+    if (card && p.card !== card) return false;
+    if (res && p.result !== res) return false;
+    if (nat && p.nat !== nat) return false;
+    if (age && p.age >= parseInt(age)) return false;
+    if (par && p.parlay !== par) return false;
+    return true;
+  });
+}
+
+function render() {
+  const data = getFiltered();
+  const total = data.reduce((s, p) => s + p.unitsWon, 0);
+  const wins = data.filter(p => p.result === 'Win').length;
+  const losses = data.filter(p => p.result === 'Loss').length;
+  const wp = data.length ? Math.round(wins / data.length * 100) : 0;
+  const wagered = data.reduce((s, p) => s + p.units, 0);
+  const roi = wagered ? (total / wagered * 100).toFixed(1) : '0.0';
+  const bestWin = data.length ? Math.max(...data.map(p => p.unitsWon)) : 0;
+
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-card fade-in">
+      <div class="stat-label">Total P/L</div>
+      <div class="stat-val ${total >= 0 ? 'pos' : 'neg'}">${total >= 0 ? '+' : ''}${total.toFixed(2)}u</div>
+      <div class="stat-sub">${wagered.toFixed(1)}u wagered</div>
+    </div>
+    <div class="stat-card fade-in">
+      <div class="stat-label">Record</div>
+      <div class="stat-val neutral">${wins}–${losses}</div>
+      <div class="stat-sub">${data.length} picks total</div>
+    </div>
+    <div class="stat-card fade-in">
+      <div class="stat-label">Win Rate</div>
+      <div class="stat-val ${wp >= 50 ? 'pos' : 'neg'}">${wp}%</div>
+      <div class="stat-sub">of all picks</div>
+    </div>
+    <div class="stat-card fade-in">
+      <div class="stat-label">ROI</div>
+      <div class="stat-val ${parseFloat(roi) >= 0 ? 'pos' : 'neg'}">${roi}%</div>
+      <div class="stat-sub">return on investment</div>
+    </div>
+    <div class="stat-card fade-in">
+      <div class="stat-label">Best Pick</div>
+      <div class="stat-val pos">+${bestWin.toFixed(2)}u</div>
+      <div class="stat-sub">single pick high</div>
+    </div>
+  `;
+
+  const sorted = [...data].sort((a, b) => b.unitsWon - a.unitsWon);
+
+  document.getElementById('row-count').textContent = `${data.length} of ${ALL_PICKS.length} picks`;
+
+  if (sorted.length === 0) {
+    document.getElementById('table-container').innerHTML = `<div class="loading-state"><div class="loading-text">No picks match the current filters.</div></div>`;
+    return;
+  }
+
+  const rows = sorted.map(p => `
+    <tr>
+      <td style="color:var(--muted)">${p.date}</td>
+      <td style="color:var(--muted)">${p.location}</td>
+      <td class="name">${p.fighter}</td>
+      <td style="color:var(--muted)">${p.wc}</td>
+      <td style="color:var(--muted)">${p.gender === 'M' ? 'M' : 'W'}</td>
+      <td style="color:var(--muted)">${p.age}</td>
+      <td style="color:var(--muted)">${p.nat}</td>
+      <td style="color:var(--muted)">${p.card}</td>
+      <td><span class="badge ${p.type === 'Underdog' ? 'badge-dog' : 'badge-fav'}">${p.type}</span></td>
+      <td>${p.units}u</td>
+      <td style="color:var(--muted)">${p.odds > 0 ? '+' : ''}${p.odds}</td>
+      <td>${p.parlay === 'Y' ? `<span class="badge badge-parlay">${p.parlayId}</span>` : '—'}</td>
+      <td><span class="badge ${p.result === 'Win' ? 'badge-win' : 'badge-loss'}">${p.result}</span></td>
+      <td style="text-align:right" class="${p.unitsWon >= 0 ? 'pl-pos' : 'pl-neg'}">${p.unitsWon >= 0 ? '+' : ''}${p.unitsWon.toFixed(2)}u</td>
+    </tr>
+  `).join('');
+
+  document.getElementById('table-container').innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th><th>Location</th><th>Fighter</th><th>Weight Class</th>
+          <th>G</th><th>Age</th><th>Nationality</th><th>Card</th>
+          <th>Type</th><th>Units</th><th>Odds</th><th>Parlay</th>
+          <th>Result</th><th style="text-align:right">P/L</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+function populateDropdowns() {
+  const locs = [...new Set(ALL_PICKS.map(p => p.location))].sort();
+  const wcs = [...new Set(ALL_PICKS.map(p => p.wc))].sort();
+  const nats = [...new Set(ALL_PICKS.map(p => p.nat))].sort();
+
+  const fill = (id, vals) => vals.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v; opt.textContent = v;
+    document.getElementById(id).appendChild(opt);
+  });
+
+  fill('f-loc', locs);
+  fill('f-wc', wcs);
+  fill('f-nat', nats);
+}
+
+function resetFilters() {
+  ['f-loc','f-wc','f-gen','f-fd','f-card','f-res','f-nat','f-age','f-par'].forEach(id => {
+    document.getElementById(id).selectedIndex = 0;
+  });
+  render();
+}
+
+document.querySelectorAll('select').forEach(el => el.addEventListener('change', render));
+
+fetchData();
+</script>
+</body>
+</html>
 
