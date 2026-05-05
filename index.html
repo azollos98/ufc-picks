@@ -723,7 +723,7 @@ function renderParlays(){
     <div class="bust-card"><div class="bust-card-title">📊 Bust by Odds Range</div>${to.map(([r,c])=>`<div class="bust-item"><div class="bust-item-label">${r}</div><div class="bust-count">${c}</div></div>`).join('')}</div>
     <div class="bust-card"><div class="bust-card-title">⚖️ Bust by Weight Class</div>${tw.map(([w,c])=>`<div class="bust-item"><div class="bust-item-label">${w}</div><div class="bust-count">${c}</div></div>`).join('')}</div>
   `;
-
+ 
   document.getElementById('parlay-row-count').textContent=`${total} parlays`;
   document.getElementById('parlay-table-container').innerHTML=`
     <table class="parlay-summary-table">
