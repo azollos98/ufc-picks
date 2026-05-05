@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AZ Bets — UFC Picks Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080808; --surface: #101010; --surface2: #181818;
+    --border: #1e1e1e; --border2: #2a2a2a; --text: #f0f0f0; --muted: #555555;
+    --green: #00e676; --green-dim: #002d14; --red: #ff3d3d; --red-dim: #2d0000;
+    --gold: #ffd600; --blue-dim: #0a1a4d; --amber: #ffab00; --amber-dim: #2d1e00;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; min-height: 100vh; }
+
+  header { border-bottom: 1px solid var(--border); padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; height: 62px; position: sticky; top: 0; background: rgba(8,8,8,0.97); backdrop-filter: blur(10px); z-index: 100; }
+  .logo { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 3px; color: var(--text); display: flex; align-items: center; gap: 10px; }
+  .logo-az { color: var(--gold); }
+  .logo-divider { width: 2px; height: 22px; background: var(--border2); border-radius: 2px; }
+  .logo-sub { font-size: 13px; letter-spacing: 2px; color: var(--muted); font-family: 'Bebas Neue', sans-serif; }
+  .last-updated { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
+
+  .tabs { display: flex; border-bottom: 1px solid var(--border); padding: 0 2rem; background: var(--surface); }
+  .tab-btn { font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; padding: 14px 22px; background: none; border: none; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.2s; }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+  main { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* EVENT BANNER */
+  .event-banner { position: relative; background: var(--surface); border: 1px solid var(--border2); border-radius: 12px; overflow: hidden; margin-bottom: 2rem; min-height: 180px; }
+  .event-banner::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,214,0,0.06) 0%, transparent 50%, rgba(255,61,61,0.04) 100%); pointer-events: none; z-index: 0; }
+  .event-banner > * { position: relative; z-index: 1; }
+  .event-banner-grid { display: grid; grid-template-columns: 1fr auto; }
+  .event-banner-left { padding: 28px 32px; }
+  .event-banner-eyebrow { font-size: 10px; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase; color: var(--gold); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .event-banner-eyebrow::before { content: ''; display: inline-block; width: 20px; height: 2px; background: var(--gold); }
+  .event-banner-title { font-family: 'Bebas Neue', sans-serif; font-size: 48px; line-height: 1; letter-spacing: 2px; color: var(--text); margin-bottom: 2px; }
+  .event-banner-subtitle { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 1px; color: var(--gold); margin-bottom: 6px; }
+  .event-banner-meta { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted); margin-bottom: 22px; }
+  .event-stats-row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .event-stat-pill { background: rgba(255,255,255,0.04); border: 1px solid var(--border2); border-radius: 6px; padding: 10px 16px; }
+  .event-stat-pill-val { font-family: 'Bebas Neue', sans-serif; font-size: 22px; line-height: 1; }
+  .event-stat-pill-val.pos { color: var(--green); }
+  .event-stat-pill-val.neg { color: var(--red); }
+  .event-stat-pill-label { font-size: 10px; color: var(--muted); margin-top: 2px; white-space: nowrap; }
+  .event-banner-right { padding: 28px 24px; display: flex; flex-direction: column; justify-content: center; align-items: flex-end; gap: 10px; border-left: 1px solid var(--border); min-width: 180px; }
+  .event-fight { text-align: right; }
+  .event-fight-label { font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .event-fight-wc { font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 1px; color: var(--gold); background: rgba(255,214,0,0.08); border: 1px solid rgba(255,214,0,0.2); border-radius: 5px; padding: 4px 10px; display: inline-block; }
+  .event-fight-names { font-size: 11px; color: var(--muted); margin-top: 3px; font-family: 'DM Mono', monospace; }
+  .event-banner-loading { display: flex; align-items: center; justify-content: center; min-height: 180px; gap: 10px; }
+  .event-fetch-error { padding: 2rem; text-align: center; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 12px; }
+
+  /* STAT CARDS */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 2rem; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; transition: border-color 0.2s; }
+  .stat-card:hover { border-color: var(--border2); }
+  .stat-label { font-size: 10px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .stat-val { font-family: 'Bebas Neue', sans-serif; font-size: 32px; line-height: 1; letter-spacing: 1px; }
+  .stat-val.pos { color: var(--green); }
+  .stat-val.neg { color: var(--red); }
+  .stat-val.neutral { color: var(--text); }
+  .stat-sub { font-size: 11px; color: var(--muted); margin-top: 4px; font-family: 'DM Mono', monospace; }
+
+  /* LEADERBOARD */
+  .leaderboard-section { margin-bottom: 2rem; }
+  .leaderboard-title { font-size: 10px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+  .leaderboard { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .lb-row { display: grid; grid-template-columns: 36px 1fr auto auto; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); transition: background 0.15s; }
+  .lb-row:last-child { border-bottom: none; }
+  .lb-row:hover { background: var(--surface2); }
+  .lb-rank { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--muted); text-align: center; }
+  .lb-rank.gold { color: var(--gold); }
+  .lb-rank.silver { color: #aaaaaa; }
+  .lb-rank.bronze { color: #cd7f32; }
+  .lb-name { font-weight: 500; font-size: 14px; }
+  .lb-meta { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .lb-record { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted); text-align: right; }
+  .lb-pl { font-family: 'Bebas Neue', sans-serif; font-size: 22px; text-align: right; min-width: 80px; }
+  .lb-pl.pos { color: var(--green); }
+  .lb-pl.neg { color: var(--red); }
+
+  /* FILTERS */
+  .filters-section { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; margin-bottom: 1.5rem; }
+  .filters-title { font-size: 10px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+  .filters-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; align-items: end; }
+  .filter-group label { display: block; font-size: 10px; color: var(--muted); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 5px; }
+  select { width: 100%; background: var(--surface2); border: 1px solid var(--border2); color: var(--text); padding: 7px 10px; border-radius: 5px; font-size: 12px; font-family: 'DM Sans', sans-serif; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23555'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; transition: border-color 0.2s; }
+  select:hover, select:focus { border-color: var(--gold); outline: none; }
+  .reset-btn { background: transparent; border: 1px solid var(--border2); color: var(--muted); padding: 7px 16px; border-radius: 5px; font-size: 12px; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; width: 100%; }
+  .reset-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+  /* TABLE */
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .table-header-bar { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid var(--border); }
+  .table-title { font-size: 10px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+  .row-count { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 900px; }
+  thead th { background: var(--surface2); padding: 10px 14px; text-align: left; font-size: 10px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); white-space: nowrap; }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--surface2); }
+  td { padding: 10px 14px; font-size: 13px; white-space: nowrap; font-family: 'DM Mono', monospace; }
+  td.name { font-family: 'DM Sans', sans-serif; font-weight: 500; color: var(--text); }
+
+  /* BADGES */
+  .badge { display: inline-block; font-size: 10px; font-weight: 500; letter-spacing: 0.5px; padding: 3px 8px; border-radius: 4px; font-family: 'DM Sans', sans-serif; }
+  .badge-dog { background: var(--amber-dim); color: var(--amber); border: 1px solid #4d3300; }
+  .badge-fav { background: var(--blue-dim); color: #82b1ff; border: 1px solid #1a3a80; }
+  .badge-win { background: var(--green-dim); color: var(--green); border: 1px solid #005c2e; }
+  .badge-loss { background: var(--red-dim); color: var(--red); border: 1px solid #5c0000; }
+  .badge-parlay { background: #1a0033; color: #cc80ff; border: 1px solid #440088; font-size: 9px; }
+  .badge-bust { background: #3d1a00; color: #ff8c42; border: 1px solid #7a3300; }
+  .pl-pos { color: var(--green); font-weight: 500; }
+  .pl-neg { color: var(--red); font-weight: 500; }
+  .parlay-group-win { background: rgba(0,230,118,0.02); }
+  .parlay-group-loss { background: rgba(255,61,61,0.02); }
+
+  /* BUST ANALYSIS */
+  .bust-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 2rem; }
+  .bust-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .bust-card-title { font-size: 10px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--surface2); }
+  .bust-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--border); }
+  .bust-item:last-child { border-bottom: none; }
+  .bust-item-label { font-size: 13px; color: var(--text); }
+  .bust-item-sub { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; margin-top: 2px; }
+  .bust-count { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--red); }
+  .parlay-summary-table { min-width: 700px; }
+
+  .loading-state { display: flex; align-items: center; justify-content: center; padding: 4rem; flex-direction: column; gap: 12px; }
+  .spinner { width: 28px; height: 28px; border: 2px solid var(--border2); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--muted); }
+  .error-state { padding: 3rem; text-align: center; color: var(--red); font-family: 'DM Mono', monospace; font-size: 12px; }
+  .fade-in { animation: fadeIn 0.4s ease forwards; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  @media (max-width: 768px) {
+    main { padding: 1rem; } header { padding: 0 1rem; } .tabs { padding: 0 1rem; }
+    .event-banner-grid { grid-template-columns: 1fr; } .event-banner-right { display: none; }
+    .event-banner-title { font-size: 32px; } .event-banner-left { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><span class="logo-az">AZ</span> BETS<div class="logo-divider"></div><span class="logo-sub">UFC Picks</span></div>
+  <div class="last-updated" id="last-updated">Loading...</div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('picks')">All Picks</button>
+  <button class="tab-btn" onclick="switchTab('parlays')">Parlays</button>
+</div>
+
+<main>
+  <div class="tab-panel active" id="tab-picks">
+    <div class="event-banner" id="event-banner">
+      <div class="event-banner-loading"><div class="spinner"></div></div>
+    </div>
+    <div class="stats-grid" id="stats-grid"><div class="stat-card"><div class="stat-label">Loading</div><div class="stat-val neutral">—</div></div></div>
+    <div class="leaderboard-section">
+      <div class="leaderboard-title">Top 5 Fighters by Units Won</div>
+      <div class="leaderboard" id="leaderboard"><div class="loading-state" style="padding:1.5rem"><div class="spinner"></div></div></div>
+    </div>
+    <div class="filters-section">
+      <div class="filters-title">Filter Picks</div>
+      <div class="filters-grid">
+        <div class="filter-group"><label>Location</label><select id="f-loc"><option value="">All locations</option></select></div>
+        <div class="filter-group"><label>Weight class</label><select id="f-wc"><option value="">All</option></select></div>
+        <div class="filter-group"><label>Gender</label><select id="f-gen"><option value="">All</option><option value="M">Male</option><option value="W">Female</option></select></div>
+        <div class="filter-group"><label>Pick type</label><select id="f-fd"><option value="">All</option><option value="Favorite">Favorite</option><option value="Underdog">Underdog</option></select></div>
+        <div class="filter-group"><label>Card position</label><select id="f-card"><option value="">All</option><option value="Main Event">Main Event</option><option value="Main Card">Main Card</option><option value="Prelims">Prelims</option></select></div>
+        <div class="filter-group"><label>Result</label><select id="f-res"><option value="">All</option><option value="Win">Win</option><option value="Loss">Loss</option></select></div>
+        <div class="filter-group"><label>Nationality</label><select id="f-nat"><option value="">All</option></select></div>
+        <div class="filter-group"><label>Age range</label>
+          <select id="f-age">
+            <option value="">Any age</option>
+            <option value="0-20">20 and under</option>
+            <option value="20-25">20–25</option>
+            <option value="25-30">25–30</option>
+            <option value="30-35">30–35</option>
+            <option value="35-40">35–40</option>
+            <option value="40+">40+</option>
+          </select>
+        </div>
+        <div class="filter-group"><label>Bet type</label><select id="f-par"><option value="">All bets</option><option value="N">Straight only</option><option value="Y">Parlays only</option></select></div>
+        <div class="filter-group"><label>&nbsp;</label><button class="reset-btn" onclick="resetFilters()">Reset all</button></div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-header-bar">
+        <div class="table-title">All Picks — sorted by best P/L</div>
+        <div class="row-count" id="row-count">—</div>
+      </div>
+      <div class="table-scroll"><div id="table-container"><div class="loading-state"><div class="spinner"></div><div class="loading-text">Fetching picks from Google Sheets...</div></div></div></div>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="tab-parlays">
+    <div class="stats-grid" id="parlay-stats-grid"><div class="stat-card"><div class="stat-label">Loading</div><div class="stat-val neutral">—</div></div></div>
+    <div class="bust-grid" id="bust-grid"></div>
+    <div class="table-wrap">
+      <div class="table-header-bar">
+        <div class="table-title">All Parlays — grouped by ID</div>
+        <div class="row-count" id="parlay-row-count">—</div>
+      </div>
+      <div class="table-scroll"><div id="parlay-table-container"><div class="loading-state"><div class="spinner"></div><div class="loading-text">Loading parlay data...</div></div></div></div>
+    </div>
+  </div>
+</main>
+
+<script>
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQgAn8AgO4_DDbfFoo6CXUmwFKfW-48ZuhUVaPzXk_TsI-6PH1ZliBX83a33rZKsDkW2Yj2XweQS9q1/pub?gid=0&single=true&output=csv';
+// Wikipedia REST API — no CORS issues, always up to date
+const WIKI_API = 'https://en.wikipedia.org/api/rest_v1/page/summary/';
+const WIKI_SEARCH = 'https://en.wikipedia.org/w/api.php?action=query&list=search&format=json&origin=*&srsearch=';
+
+let ALL_PICKS = [], PARLAY_GROUPS = {};
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',(tab==='picks'&&i===0)||(tab==='parlays'&&i===1)));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+}
+
+function parseCSVRow(row) {
+  const r=[]; let c='',q=false;
+  for(let i=0;i<row.length;i++){const ch=row[i];if(ch==='"'){q=!q;}else if(ch===','&&!q){r.push(c);c='';}else{c+=ch;}}
+  r.push(c); return r;
+}
+
+function parseDate(str) {
+  const p=str.trim().split('/');
+  return p.length===3?new Date(parseInt(p[2]),parseInt(p[0])-1,parseInt(p[1])):new Date(str);
+}
+
+function pl(p){return p.parlay==='Y'&&p.parlayId?(p.parlayPL??p.unitsWon):p.unitsWon;}
+function fmt(v){return(v>=0?'+':'')+v.toFixed(1)+'u';}
+function cls(v){return v>=0?'pos':'neg';}
+
+// ── FETCH UPCOMING EVENT FROM WIKIPEDIA ──
+async function fetchUpcomingEvent() {
+  try {
+    // Search Wikipedia for next UFC event
+    const today = new Date();
+    const searchRes = await fetch(WIKI_SEARCH + encodeURIComponent('UFC 2026 upcoming event') + '&srnamespace=0&srlimit=10');
+    const searchData = await searchRes.json();
+
+    // Find UFC numbered event pages
+    const ufcPages = (searchData?.query?.search || [])
+      .filter(r => /^UFC\s+\d+/.test(r.title) || /^UFC\s+Fight\s+Night/.test(r.title));
+
+    // Try each result to find one that has a future date
+    for (const page of ufcPages) {
+      try {
+        const summaryRes = await fetch(WIKI_API + encodeURIComponent(page.title));
+        const summary = await summaryRes.json();
+
+        // Extract date from description
+        const dateMatch = summary.extract?.match(/(\w+ \d+,?\s*\d{4})/);
+        if (!dateMatch) continue;
+        const eventDate = new Date(dateMatch[1]);
+        if (isNaN(eventDate.getTime()) || eventDate < today) continue;
+
+        // Got a future event — now get the full page for fight card details
+        const pageRes = await fetch(`https://en.wikipedia.org/w/api.php?action=parse&page=${encodeURIComponent(page.title)}&prop=wikitext&format=json&origin=*`);
+        const pageData = await pageRes.json();
+        const wikitext = pageData?.parse?.wikitext?.['*'] || '';
+
+        return parseWikiEvent(page.title, eventDate, wikitext, summary.extract || '');
+      } catch(e) { continue; }
+    }
+
+    // Fallback: hardcode known next event if Wikipedia search fails
+    return getFallbackEvent();
+  } catch(e) {
+    return getFallbackEvent();
+  }
+}
+
+function parseWikiEvent(title, date, wikitext, extract) {
+  // Extract venue and city
+  const venueMatch = wikitext.match(/\|\s*venue\s*=\s*\[\[([^\]]+)\]\]/i) || wikitext.match(/\|\s*venue\s*=\s*([^\n|]+)/i);
+  const cityMatch = wikitext.match(/\|\s*city\s*=\s*([^\n|]+)/i);
+  const venue = venueMatch ? venueMatch[1].replace(/\[\[|\]\]/g,'').split('|')[0].trim() : '';
+  const city = cityMatch ? cityMatch[1].replace(/\[\[|\]\]/g,'').trim() : '';
+  const location = city || venue || title;
+
+  // Extract fights from wikitext — look for fighter name patterns
+  const fights = [];
+
+  // Pattern: fighter1 vs fighter2 with weight class context
+  const fightPatterns = [
+    /\[\[([^\]]+)\]\]\s*vs\.?\s*\[\[([^\]]+)\]\][^\n]*?(Middleweight|Heavyweight|Light Heavyweight|Welterweight|Lightweight|Featherweight|Bantamweight|Flyweight|Strawweight)/gi,
+    /(Middleweight|Heavyweight|Light Heavyweight|Welterweight|Lightweight|Featherweight|Bantamweight|Flyweight|Strawweight)[^\n]*?\[\[([^\]]+)\]\]\s*(?:vs\.?|and)\s*\[\[([^\]]+)\]\]/gi,
+  ];
+
+  // Simpler: extract weight classes mentioned on the card
+  const wcMatches = [...wikitext.matchAll(/(Middleweight|Heavyweight|Light Heavyweight|Welterweight|Lightweight|Featherweight|Bantamweight|Flyweight|Strawweight)\s+(?:Championship\s+)?bout/gi)];
+  const weightClasses = [...new Set(wcMatches.map(m => normalizeWC(m[1])))].slice(0, 5);
+
+  // Extract main event fighters from title or early extract text
+  const mainMatch = extract.match(/([A-Z][a-z]+ [A-Z][a-z]+(?:\s[A-Z][a-z]+)?)\s+(?:vs\.?|and)\s+([A-Z][a-z]+ [A-Z][a-z]+(?:\s[A-Z][a-z]+)?)/);
+  const fighter1 = mainMatch ? mainMatch[1].trim() : '';
+  const fighter2 = mainMatch ? mainMatch[2].trim() : '';
+
+  // Main event WC — first one found is usually main event
+  const mainWC = weightClasses[0] || 'Middleweight';
+
+  // Nationalities on card — extract from wikitext
+  const natPatterns = {
+    'America': /United States|American/gi,
+    'Brazil': /Brazil(ian)?/gi,
+    'Russia': /Russia(n)?/gi,
+    'England': /England|English|United Kingdom|British/gi,
+    'Australia': /Australia(n)?/gi,
+    'Mexico': /Mexico|Mexican/gi,
+    'Georgia': /Georgia(n)?/gi,
+    'Kazakhstan': /Kazakhstan/gi,
+    'Sweden': /Sweden|Swedish/gi,
+    'Chechnya': /Chechnya|Chechen/gi,
+  };
+  const natsOnCard = Object.entries(natPatterns)
+    .filter(([,re]) => re.test(wikitext))
+    .map(([nat]) => nat)
+    .slice(0, 4);
+
+  return { title, date, location, venue, city, mainWC, weightClasses, fighter1, fighter2, natsOnCard };
+}
+
+function normalizeWC(wc) {
+  const map = {
+    'middleweight': 'Middleweight', 'heavyweight': 'Heavyweight',
+    'light heavyweight': 'Light Heavyweight', 'welterweight': 'Welterweight',
+    'lightweight': 'Lightweight', 'featherweight': 'Featherweight',
+    'bantamweight': 'Bantamweight', 'flyweight': 'Flyweight', 'strawweight': 'Strawweight'
+  };
+  return map[wc.toLowerCase()] || wc;
+}
+
+function getFallbackEvent() {
+  // Hardcoded fallback for UFC 328 (current upcoming event as of May 2026)
+  return {
+    title: 'UFC 328: Chimaev vs. Strickland',
+    date: new Date(2026, 4, 9), // May 9 2026
+    location: 'Newark, NJ',
+    venue: 'Prudential Center',
+    mainWC: 'Middleweight',
+    weightClasses: ['Middleweight', 'Flyweight', 'Heavyweight', 'Welterweight', 'Lightweight'],
+    fighter1: 'Khamzat Chimaev',
+    fighter2: 'Sean Strickland',
+    natsOnCard: ['America', 'Russia', 'Japan', 'Myanmar'],
+  };
+}
+
+// ── RENDER EVENT BANNER ──
+function renderEventBanner(event) {
+  if (!event) {
+    document.getElementById('event-banner').innerHTML = '<div class="event-fetch-error">Could not load upcoming event data.</div>';
+    return;
+  }
+
+  const dateStr = event.date.toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'});
+  const daysUntil = Math.ceil((event.date - new Date()) / (1000*60*60*24));
+  const countdown = daysUntil > 0 ? `${daysUntil} day${daysUntil !== 1 ? 's' : ''} away` : 'Tonight!';
+
+  // Cross-reference with picks data — only show POSITIVE stats directly related to the card
+  const candidates = [];
+
+  // All weight classes on the card
+  event.weightClasses.forEach(wc => {
+    const picks = ALL_PICKS.filter(p => p.wc === wc);
+    if (!picks.length) return;
+    const v = picks.reduce((s,p)=>s+pl(p),0);
+    if (v > 0) candidates.push({val:fmt(v), cls:'pos', label:`Betting ${wc}`, score: v});
+  });
+
+  // Nationalities on the card
+  event.natsOnCard.forEach(nat => {
+    const picks = ALL_PICKS.filter(p => p.nat === nat);
+    if (picks.length < 3) return;
+    const v = picks.reduce((s,p)=>s+pl(p),0);
+    if (v > 0) candidates.push({val:fmt(v), cls:'pos', label:`${nat} fighters`, score: v});
+  });
+
+  // Main event picks
+  const mePicks = ALL_PICKS.filter(p => p.card === 'Main Event');
+  if (mePicks.length) {
+    const mePL = mePicks.reduce((s,p)=>s+pl(p),0);
+    if (mePL > 0) candidates.push({val:fmt(mePL), cls:'pos', label:'Main Event bets', score: mePL});
+  }
+
+  // Underdog picks
+  const dogPicks = ALL_PICKS.filter(p => p.type === 'Underdog');
+  if (dogPicks.length) {
+    const dogPL = dogPicks.reduce((s,p)=>s+pl(p),0);
+    if (dogPL > 0) candidates.push({val:fmt(dogPL), cls:'pos', label:'Underdog bets', score: dogPL});
+  }
+
+  // Favorite picks
+  const favPicks = ALL_PICKS.filter(p => p.type === 'Favorite');
+  if (favPicks.length) {
+    const favPL = favPicks.reduce((s,p)=>s+pl(p),0);
+    if (favPL > 0) candidates.push({val:fmt(favPL), cls:'pos', label:'Favorite bets', score: favPL});
+  }
+
+  // Sort by highest P/L and take top 5
+  const displayPills = candidates.sort((a,b) => b.score - a.score).slice(0, 5);
+
+  // Right panel fights
+  const mainFightLabel = event.fighter1 && event.fighter2
+    ? `${event.fighter1.split(' ').pop()} vs ${event.fighter2.split(' ').pop()}`
+    : 'TBA';
+
+  const coMainWC = event.weightClasses[1] || '';
+
+  document.getElementById('event-banner').innerHTML = `
+    <div class="event-banner-grid">
+      <div class="event-banner-left">
+        <div class="event-banner-eyebrow">Upcoming Event · ${countdown}</div>
+        <div class="event-banner-title">${event.title.toUpperCase()}</div>
+        <div class="event-banner-subtitle">${mainFightLabel}</div>
+        <div class="event-banner-meta">${dateStr} &nbsp;·&nbsp; ${event.location}</div>
+        <div class="event-stats-row">
+          ${displayPills.length ? displayPills.map(p=>`
+            <div class="event-stat-pill">
+              <div class="event-stat-pill-val pos">${p.val}</div>
+              <div class="event-stat-pill-label">${p.label}</div>
+            </div>`).join('') : `<div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);padding:8px 0">Building track record for this card's categories...</div>`}
+        </div>
+      </div>
+      <div class="event-banner-right">
+        <div class="event-fight">
+          <div class="event-fight-label">Main Event</div>
+          <div class="event-fight-wc">${event.mainWC}</div>
+          <div class="event-fight-names">${mainFightLabel}</div>
+        </div>
+        ${coMainWC ? `<div class="event-fight">
+          <div class="event-fight-label">Co-Main</div>
+          <div class="event-fight-wc">${coMainWC}</div>
+        </div>` : ''}
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);text-align:right;margin-top:4px">${event.venue || event.location}</div>
+      </div>
+    </div>`;
+}
+
+// ── FETCH SHEET DATA ──
+async function fetchData() {
+  try {
+    const res = await fetch(SHEET_URL);
+    if (!res.ok) throw new Error('Network error');
+    const text = await res.text();
+    ALL_PICKS = text.trim().split('\n').slice(1).map(row => {
+      const c = parseCSVRow(row);
+      return {date:c[0]?.trim()||'',location:c[1]?.trim()||'',fighter:c[2]?.trim()||'',wc:c[3]?.trim()||'',gender:c[4]?.trim()||'',age:parseInt(c[5])||0,nat:c[6]?.trim()||'',card:c[7]?.trim()||'',type:c[8]?.trim()||'',units:parseFloat(c[9])||0,result:c[10]?.trim()||'',odds:parseInt(c[11])||0,parlay:c[12]?.trim()||'N',parlayId:c[13]?.trim()||'',unitsWon:parseFloat(c[14])||0};
+    }).filter(p=>p.fighter);
+
+    PARLAY_GROUPS = {};
+    ALL_PICKS.filter(p=>p.parlay==='Y'&&p.parlayId).forEach(p=>{if(!PARLAY_GROUPS[p.parlayId])PARLAY_GROUPS[p.parlayId]=[];PARLAY_GROUPS[p.parlayId].push(p);});
+    Object.values(PARLAY_GROUPS).forEach(legs=>{
+      const lost=legs.some(l=>l.result==='Loss');
+      legs.forEach(l=>{l.parlayResult=lost?'Loss':'Win';l.parlayPL=lost?-l.units:l.unitsWon;});
+    });
+
+    document.getElementById('last-updated').textContent='Updated: '+new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    populateDropdowns();
+    render();
+    renderParlays();
+
+    // Fetch upcoming event after picks are loaded so stats can be calculated
+    const event = await fetchUpcomingEvent();
+    renderEventBanner(event);
+
+  } catch(e) {
+    document.getElementById('table-container').innerHTML=`<div class="error-state">Failed to load picks data.<br><br>${e.message}</div>`;
+    document.getElementById('last-updated').textContent='Error loading data';
+    document.getElementById('event-banner').innerHTML='<div class="event-fetch-error">Could not load data.</div>';
+  }
+}
+
+function ageMatch(age,range){
+  if(!range)return true;
+  if(range==='0-20')return age<=20;
+  if(range==='40+')return age>=40;
+  const[min,max]=range.split('-').map(Number);return age>=min&&age<max;
+}
+
+function getFiltered(){
+  const loc=document.getElementById('f-loc').value,wc=document.getElementById('f-wc').value,gen=document.getElementById('f-gen').value,fd=document.getElementById('f-fd').value,card=document.getElementById('f-card').value,res=document.getElementById('f-res').value,nat=document.getElementById('f-nat').value,age=document.getElementById('f-age').value,par=document.getElementById('f-par').value;
+  return ALL_PICKS.filter(p=>{
+    if(loc&&p.location!==loc)return false;if(wc&&p.wc!==wc)return false;if(gen&&p.gender!==gen)return false;if(fd&&p.type!==fd)return false;if(card&&p.card!==card)return false;if(res&&p.result!==res)return false;if(nat&&p.nat!==nat)return false;if(!ageMatch(p.age,age))return false;if(par&&p.parlay!==par)return false;return true;
+  });
+}
+
+function render(){
+  const data=getFiltered();
+  const total=data.reduce((s,p)=>s+pl(p),0);
+  const wins=data.filter(p=>p.result==='Win').length,losses=data.filter(p=>p.result==='Loss').length;
+  const wp=data.length?Math.round(wins/data.length*100):0;
+  const wagered=data.reduce((s,p)=>s+p.units,0);
+  const roi=wagered?(total/wagered*100).toFixed(1):'0.0';
+
+  // YTD stats — calendar year
+  const ytdStart = new Date(new Date().getFullYear(), 0, 1);
+  const ytdData = data.filter(p => parseDate(p.date) >= ytdStart);
+  const ytdTotal = ytdData.reduce((s,p)=>s+pl(p),0);
+  const ytdWins = ytdData.filter(p=>p.result==='Win').length;
+  const ytdLosses = ytdData.filter(p=>p.result==='Loss').length;
+
+  document.getElementById('stats-grid').innerHTML=`
+    <div class="stat-card fade-in"><div class="stat-label">All Time P/L</div><div class="stat-val ${total>=0?'pos':'neg'}">${total>=0?'+':''}${total.toFixed(2)}u</div><div class="stat-sub">${wagered.toFixed(1)}u wagered</div></div>
+    <div class="stat-card fade-in"><div class="stat-label">All Time Record</div><div class="stat-val neutral">${wins}–${losses}</div><div class="stat-sub">${data.length} picks total</div></div>
+    <div class="stat-card fade-in"><div class="stat-label">YTD P/L</div><div class="stat-val ${ytdTotal>=0?'pos':'neg'}">${ytdTotal>=0?'+':''}${ytdTotal.toFixed(2)}u</div><div class="stat-sub">${new Date().getFullYear()} season</div></div>
+    <div class="stat-card fade-in"><div class="stat-label">YTD Record</div><div class="stat-val neutral">${ytdWins}–${ytdLosses}</div><div class="stat-sub">${ytdData.length} picks in ${new Date().getFullYear()}</div></div>
+    <div class="stat-card fade-in"><div class="stat-label">Win Rate</div><div class="stat-val ${wp>=50?'pos':'neg'}">${wp}%</div><div class="stat-sub">of all picks</div></div>
+    <div class="stat-card fade-in"><div class="stat-label">ROI</div><div class="stat-val ${parseFloat(roi)>=0?'pos':'neg'}">${roi}%</div><div class="stat-sub">return on investment</div></div>
+  `;
+
+  const fpl={};
+  data.forEach(p=>{if(!fpl[p.fighter])fpl[p.fighter]={pl:0,wins:0,losses:0,wc:p.wc,nat:p.nat};fpl[p.fighter].pl+=pl(p);if(p.result==='Win')fpl[p.fighter].wins++;else fpl[p.fighter].losses++;});
+  const top5=Object.entries(fpl).sort((a,b)=>b[1].pl-a[1].pl).slice(0,5);
+  const rc=i=>i===0?'gold':i===1?'silver':i===2?'bronze':'';
+  document.getElementById('leaderboard').innerHTML=top5.length?top5.map(([name,d],i)=>`<div class="lb-row"><div class="lb-rank ${rc(i)}">${i+1}</div><div><div class="lb-name">${name}</div><div class="lb-meta">${d.wc} · ${d.nat}</div></div><div class="lb-record">${d.wins}–${d.losses}</div><div class="lb-pl ${d.pl>=0?'pos':'neg'}">${d.pl>=0?'+':''}${d.pl.toFixed(2)}u</div></div>`).join(''):'<div class="loading-state" style="padding:1.5rem"><div class="loading-text">No data</div></div>';
+
+  const sorted=[...data].sort((a,b)=>pl(b)-pl(a));
+  document.getElementById('row-count').textContent=`${data.length} of ${ALL_PICKS.length} picks`;
+  if(!sorted.length){document.getElementById('table-container').innerHTML=`<div class="loading-state"><div class="loading-text">No picks match the current filters.</div></div>`;return;}
+
+  document.getElementById('table-container').innerHTML=`
+    <table><thead><tr><th>Date</th><th>Location</th><th>Fighter</th><th>Weight Class</th><th>G</th><th>Age</th><th>Nationality</th><th>Card</th><th>Type</th><th>Units</th><th>Odds</th><th>Parlay</th><th>Result</th><th style="text-align:right">P/L</th></tr></thead>
+    <tbody>${sorted.map(p=>{const v=pl(p);return`<tr>
+      <td style="color:var(--muted)">${p.date}</td><td style="color:var(--muted)">${p.location}</td>
+      <td class="name">${p.fighter}</td><td style="color:var(--muted)">${p.wc}</td>
+      <td style="color:var(--muted)">${p.gender}</td><td style="color:var(--muted)">${p.age}</td>
+      <td style="color:var(--muted)">${p.nat}</td><td style="color:var(--muted)">${p.card}</td>
+      <td><span class="badge ${p.type==='Underdog'?'badge-dog':'badge-fav'}">${p.type}</span></td>
+      <td>${p.units}u</td><td style="color:var(--muted)">${p.odds>0?'+':''}${p.odds}</td>
+      <td>${p.parlay==='Y'?`<span class="badge badge-parlay">${p.parlayId}</span>`:'—'}</td>
+      <td><span class="badge ${p.result==='Win'?'badge-win':'badge-loss'}">${p.result}</span></td>
+      <td style="text-align:right" class="${v>=0?'pl-pos':'pl-neg'}">${v>=0?'+':''}${v.toFixed(2)}u</td>
+    </tr>`;}).join('')}</tbody></table>`;
+}
+
+function renderParlays(){
+  const groups=Object.entries(PARLAY_GROUPS);
+  const total=groups.length,won=groups.filter(([,l])=>l.every(x=>x.result==='Win')).length,lost=total-won;
+  const wr=total?Math.round(won/total*100):0;
+  const ppl=groups.reduce((s,[,l])=>s+(l.some(x=>x.result==='Loss')?-l[0].units:l.reduce((a,x)=>a+x.unitsWon,0)),0);
+
+  document.getElementById('parlay-stats-grid').innerHTML=`
+    <div class="stat-card fade-in"><div class="stat-label">Parlay P/L</div><div class="stat-val ${ppl>=0?'pos':'neg'}">${ppl>=0?'+':''}${ppl.toFixed(2)}u</div><div class="stat-sub">across all parlays</div></div>
+    <div class="stat-card fade-in"><div class="stat-label">Parlay Record</div><div class="stat-val neutral">${won}–${lost}</div><div class="stat-sub">${total} parlays total</div></div>
+    <div class="stat-card fade-in"><div class="stat-label">Win Rate</div><div class="stat-val ${wr>=50?'pos':'neg'}">${wr}%</div><div class="stat-sub">parlays cashed</div></div>
+    <div class="stat-card fade-in"><div class="stat-label">Busted</div><div class="stat-val neg">${lost}</div><div class="stat-sub">parlays lost</div></div>
+  `;
+
+  const bl=groups.filter(([,l])=>l.some(x=>x.result==='Loss')).flatMap(([,l])=>l.filter(x=>x.result==='Loss'));
+  const fb={};bl.forEach(l=>{if(!fb[l.fighter])fb[l.fighter]={count:0,odds:[],nat:l.nat};fb[l.fighter].count++;fb[l.fighter].odds.push(l.odds);});
+  const tf=Object.entries(fb).sort((a,b)=>b[1].count-a[1].count).slice(0,5);
+  const nb={};bl.forEach(l=>{nb[l.nat]=(nb[l.nat]||0)+1;});
+  const tn=Object.entries(nb).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const or={'Heavy Fav (<-200)':0,'Fav (-199 to -101)':0,"Pick'em":0,'Dog (+101 to +200)':0,'Big Dog (>+200)':0};
+  bl.forEach(l=>{if(l.odds<-200)or['Heavy Fav (<-200)']++;else if(l.odds<-100)or['Fav (-199 to -101)']++;else if(l.odds<=100)or["Pick'em"]++;else if(l.odds<=200)or['Dog (+101 to +200)']++;else or['Big Dog (>+200)']++;});
+  const to=Object.entries(or).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+  const wb={};bl.forEach(l=>{wb[l.wc]=(wb[l.wc]||0)+1;});
+  const tw=Object.entries(wb).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+  document.getElementById('bust-grid').innerHTML=`
+    <div class="bust-card"><div class="bust-card-title">🔴 Top Parlay Busters — Fighter</div>${tf.map(([n,d])=>`<div class="bust-item"><div><div class="bust-item-label">${n}</div><div class="bust-item-sub">${d.nat} · avg ${Math.round(d.odds.reduce((a,b)=>a+b,0)/d.odds.length)>=0?'+':''}${Math.round(d.odds.reduce((a,b)=>a+b,0)/d.odds.length)}</div></div><div class="bust-count">${d.count}</div></div>`).join('')}</div>
+    <div class="bust-card"><div class="bust-card-title">🌍 Top Parlay Busters — Nationality</div>${tn.map(([n,c])=>`<div class="bust-item"><div class="bust-item-label">${n}</div><div class="bust-count">${c}</div></div>`).join('')}</div>
+    <div class="bust-card"><div class="bust-card-title">📊 Bust by Odds Range</div>${to.map(([r,c])=>`<div class="bust-item"><div class="bust-item-label">${r}</div><div class="bust-count">${c}</div></div>`).join('')}</div>
+    <div class="bust-card"><div class="bust-card-title">⚖️ Bust by Weight Class</div>${tw.map(([w,c])=>`<div class="bust-item"><div class="bust-item-label">${w}</div><div class="bust-count">${c}</div></div>`).join('')}</div>
+  `;
+
+  document.getElementById('parlay-row-count').textContent=`${total} parlays`;
+  document.getElementById('parlay-table-container').innerHTML=`
+    <table class="parlay-summary-table">
+      <thead><tr><th>Parlay</th><th>Location</th><th>Fighter</th><th>Weight Class</th><th>Nationality</th><th>Odds</th><th>Leg Result</th><th></th><th style="text-align:right">P/L</th></tr></thead>
+      <tbody>${groups.sort((a,b)=>a[0].localeCompare(b[0],undefined,{numeric:true})).map(([id,legs])=>{
+        const lostP=legs.some(l=>l.result==='Loss');
+        const tw2=lostP?-legs[0].units:legs.reduce((s,l)=>s+l.unitsWon,0);
+        return`<tr style="background:var(--surface2)">
+          <td colspan="2" style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;color:${lostP?'var(--red)':'var(--green)'}">
+            ${id}&nbsp;<span class="badge ${lostP?'badge-loss':'badge-win'}">${lostP?'BUST':'HIT'}</span>
+          </td>
+          <td colspan="4" style="color:var(--muted);font-size:12px">${legs.length} legs · ${legs[0].units}u staked</td>
+          <td></td>
+          <td colspan="2" style="text-align:right" class="${tw2>=0?'pl-pos':'pl-neg'}">${tw2>=0?'+':''}${tw2.toFixed(2)}u</td>
+        </tr>
+        ${legs.map(l=>`<tr class="${lostP?'parlay-group-loss':'parlay-group-win'}">
+          <td style="color:var(--muted);padding-left:28px">↳ ${l.date}</td>
+          <td style="color:var(--muted)">${l.location}</td><td class="name">${l.fighter}</td>
+          <td style="color:var(--muted)">${l.wc}</td><td style="color:var(--muted)">${l.nat}</td>
+          <td style="color:var(--muted)">${l.odds>0?'+':''}${l.odds}</td>
+          <td><span class="badge ${l.result==='Win'?'badge-win':'badge-bust'}">${l.result==='Win'?'Hit':'BUST'}</span></td>
+          <td></td><td></td>
+        </tr>`).join('')}`;
+      }).join('')}</tbody>
+    </table>`;
+}
+
+function populateDropdowns(){
+  const locs=[...new Set(ALL_PICKS.map(p=>p.location))].sort();
+  const wcs=[...new Set(ALL_PICKS.map(p=>p.wc))].sort();
+  const nats=[...new Set(ALL_PICKS.map(p=>p.nat))].sort();
+  const fill=(id,vals)=>vals.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;document.getElementById(id).appendChild(o);});
+  fill('f-loc',locs);fill('f-wc',wcs);fill('f-nat',nats);
+}
+
+function resetFilters(){
+  ['f-loc','f-wc','f-gen','f-fd','f-card','f-res','f-nat','f-age','f-par'].forEach(id=>document.getElementById(id).selectedIndex=0);
+  render();
+}
+
+document.querySelectorAll('select').forEach(el=>el.addEventListener('change',render));
+fetchData();
+</script>
+</body>
+</html>
